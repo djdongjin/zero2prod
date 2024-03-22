@@ -22,5 +22,3 @@ To disable a clippy warning: `#[allow(clippy::lint_name)]`
 
 
 # TODO:
-
-- [ ] Add CI: https://gist.github.com/LukeMathWalker/5ae1107432ce283310c3e601fac915f3
