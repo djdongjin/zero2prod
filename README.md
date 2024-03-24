@@ -1,5 +1,4 @@
-# Learning goals
-
+## Learning goals
 - [ ] Basic rust usage
 - [ ] CI/CD setup
 - [ ] Containerization
@@ -7,8 +6,7 @@
 - [ ] Metrics, logs, traces
 - [ ] Familiarize with rust toolchain: testing, async/await
 
-# Notes
-
+## Notes
 `cargo watch -x check -x test -x run` to run compilation/test/run on file changes.
 
 To check test coverage:
@@ -20,5 +18,5 @@ cargo tarpaulin --ignore-tests
 
 To disable a clippy warning: `#[allow(clippy::lint_name)]`
 
-
-# TODO:
+## TODOs
+- [ ] placeholder
