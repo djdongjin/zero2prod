@@ -5,4 +5,19 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+path = "src/lib.rs"
+
+# you can have multiple binaries in a project (thus [[bin]]), but only one library
+# (unless use the workspace feature)
+[[bin]]
+path = "src/main.rs"
+name = "zero2prod"
+
 [dependencies]
+actix-web = "4.5.1"
+serde = { version = "1.0.197", features = ["derive"] }
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+reqwest = "0.12.1"
