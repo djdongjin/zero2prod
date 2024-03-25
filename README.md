@@ -19,4 +19,8 @@ cargo tarpaulin --ignore-tests
 To disable a clippy warning: `#[allow(clippy::lint_name)]`
 
 ## TODOs
-- [ ] placeholder
+
+### Ch3
+
+- [ ] Understand `mod`, `pub use` (e.g., in [mod.rs](./src/routes/mod.rs)).
+- [ ] Understand when to use, e.g. `use crate::routes` vs `use zero2prod::startup::run`.
