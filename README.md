@@ -24,3 +24,7 @@ To disable a clippy warning: `#[allow(clippy::lint_name)]`
 
 - [ ] Understand `mod`, `pub use` (e.g., in [mod.rs](./src/routes/mod.rs)).
 - [ ] Understand when to use, e.g. `use crate::routes` vs `use zero2prod::startup::run`.
+
+### Ch4
+
+- [ ] Understand all those tracing related crates.
