@@ -26,9 +26,7 @@ pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) ->
     // We do not call `.enter` on query_span!
     // `.instrument` takes care of it at the right moments
     // in the query future lifetime
-    let query_span = tracing::info_span!(
-        "Saving new subscriber details in the database",
-    );
+    let query_span = tracing::info_span!("Saving new subscriber details in the database");
 
     match sqlx::query!(
         r#"
@@ -44,9 +42,7 @@ pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) ->
     .instrument(query_span)
     .await
     {
-        Ok(_) => {
-            HttpResponse::Ok().finish()
-        },
+        Ok(_) => HttpResponse::Ok().finish(),
         Err(e) => {
             tracing::error!("request_id {} - Failed to execute query: {:?}", rid, e);
             HttpResponse::InternalServerError().finish()
