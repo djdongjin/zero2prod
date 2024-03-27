@@ -13,7 +13,6 @@ pub struct FormData {
     name = "Adding a new subscriber", // span message, fn name by default
     skip(form, db_pool), // skip these two fields in the span
     fields(
-        request_id = %Uuid::new_v4(),
         subscriber_email = %form.email,
         subscriber_name = %form.name
     )
