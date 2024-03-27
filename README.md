@@ -27,4 +27,4 @@ To disable a clippy warning: `#[allow(clippy::lint_name)]`
 
 ### Ch4
 
-- [ ] Understand all those tracing related crates.
+- [ ] Understand all those tracing related crates (e.g., `tracing::instrument`).
