@@ -30,3 +30,8 @@ To disable a clippy warning: `#[allow(clippy::lint_name)]`
 - [ ] Understand all those tracing related crates (e.g., `tracing::instrument`).
 - [ ] Wire tracing with open telemetry (`tracing-opentelemetry`).
 - [ ] `tracing` v.s. `log`.
+
+
+### Ch5
+
+- [ ] Use a container image for the app. E.g. [Wolfi](https://github.com/wolfi-dev/).
