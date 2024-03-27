@@ -35,3 +35,4 @@ To disable a clippy warning: `#[allow(clippy::lint_name)]`
 ### Ch5
 
 - [ ] Use a container image for the app. E.g. [Wolfi](https://github.com/wolfi-dev/).
+- [ ] Deploy to cloudflare if possible.
