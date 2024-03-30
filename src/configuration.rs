@@ -4,7 +4,6 @@ use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use sqlx::ConnectOptions;
 
 use crate::domain::SubscriberEmail;
-use crate::email_client::EmailClient;
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
@@ -35,6 +34,7 @@ pub struct ApplicationSettings {
 pub struct EmailClientSettings {
     pub base_url: String,
     pub sender_email: String,
+    pub authorization_token: Secret<String>,
 }
 
 impl DatabseSettings {

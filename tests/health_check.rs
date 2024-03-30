@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use zero2prod::configuration::{get_configuration, DatabseSettings};
-use zero2prod::email_client::{self, EmailClient};
+use zero2prod::email_client::EmailClient;
 use zero2prod::startup::run;
 use zero2prod::telemetry::{get_subscriber, init_subscriber};
 
@@ -42,7 +42,7 @@ async fn spawn_app() -> TestApp {
     let db_pool = configure_database(&configuration.database).await;
 
     let sender_email = configuration.email_client.sender().expect("Invalid sender email address");
-    let email_client = EmailClient::new(configuration.email_client.base_url, sender_email);
+    let email_client = EmailClient::new(configuration.email_client.base_url, sender_email, configuration.email_client.authorization_token);
 
     let server = run(listener, db_pool.clone(), email_client).expect("Failed to bind address");
     // Launch the server as a background task
