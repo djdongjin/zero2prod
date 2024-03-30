@@ -3,10 +3,14 @@ use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use sqlx::ConnectOptions;
 
+use crate::domain::SubscriberEmail;
+use crate::email_client::EmailClient;
+
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabseSettings,
     pub application: ApplicationSettings,
+    pub email_client: EmailClientSettings,
 }
 
 #[derive(serde::Deserialize)]
@@ -25,6 +29,12 @@ pub struct DatabseSettings {
 pub struct ApplicationSettings {
     pub host: String,
     pub port: u16,
+}
+
+#[derive(serde::Deserialize)]
+pub struct EmailClientSettings {
+    pub base_url: String,
+    pub sender_email: String,
 }
 
 impl DatabseSettings {
@@ -47,6 +57,17 @@ impl DatabseSettings {
         let options = self.without_db().database(&self.database_name);
         options.log_statements(tracing_log::log::LevelFilter::Trace)
     }
+}
+
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
+    }
+
+    // pub fn build(&self) -> EmailClient {
+    //     EmailClient::new(self.base_url.clone(), self.sender())
+    // }
+    
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
