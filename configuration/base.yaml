@@ -11,3 +11,4 @@ email_client:
   sender_email: "test@gmail.com"
   # production token will be handled outside of git.
   authorization_token: "my-secret-token"
+  timeout_milliseconds: 10000
