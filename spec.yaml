@@ -2,14 +2,14 @@ name: zero2prod
 # See https://www.digitalocean.com/docs/app-platform/#regional-availability for the available options
 # You can get region slugs from https://www.digitalocean.com/docs/platform/availability-matrix/
 # `fra` stands for Frankfurt (Germany - EU)
-region: fra
+region: nyc
 services:
   - name: zero2prod
     # Relative to the repository root
     dockerfile_path: Dockerfile
     source_dir: .
     github:
-      branch: root-chapter-05
+      branch: main
       deploy_on_push: true
       repo: djdongjin/zero2prod
     # Active probe used by DigitalOcean's to ensure our application is healthy
@@ -51,4 +51,4 @@ databases:
     num_nodes: 1
     size: db-s-dev-database
     # Postgres version - using the latest here
-    version: "14"
+    # version: "13"
