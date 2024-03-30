@@ -67,7 +67,6 @@ impl EmailClientSettings {
     // pub fn build(&self) -> EmailClient {
     //     EmailClient::new(self.base_url.clone(), self.sender())
     // }
-    
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {

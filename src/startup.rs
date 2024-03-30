@@ -8,7 +8,11 @@ use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
 
 // `async` is no longer needed as we don't have .await calls.
-pub fn run(listener: TcpListener, db_pool: PgPool, email_client: email_client::EmailClient) -> Result<Server, std::io::Error> {
+pub fn run(
+    listener: TcpListener,
+    db_pool: PgPool,
+    email_client: email_client::EmailClient,
+) -> Result<Server, std::io::Error> {
     // create a ARC pointer to the DB connection
     let db_pool = web::Data::new(db_pool);
     let email_client = web::Data::new(email_client);

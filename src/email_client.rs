@@ -20,7 +20,11 @@ struct SendEmailRequest {
 }
 
 impl EmailClient {
-    pub fn new(base_url: String, sender: SubscriberEmail, authorization_token: Secret<String>) -> Self {
+    pub fn new(
+        base_url: String,
+        sender: SubscriberEmail,
+        authorization_token: Secret<String>,
+    ) -> Self {
         Self {
             http_client: Client::new(),
             base_url,
@@ -28,7 +32,7 @@ impl EmailClient {
             authorization_token,
         }
     }
-    
+
     pub async fn send_email(
         &self,
         recipient: SubscriberEmail,
@@ -46,7 +50,15 @@ impl EmailClient {
             text_body: text_content.to_owned(),
         };
 
-        self.http_client.post(&url).json(&request_body).header("X-Postmark-Server-Token", self.authorization_token.expose_secret()).send().await?;
+        self.http_client
+            .post(&url)
+            .json(&request_body)
+            .header(
+                "X-Postmark-Server-Token",
+                self.authorization_token.expose_secret(),
+            )
+            .send()
+            .await?;
         Ok(())
     }
 }
