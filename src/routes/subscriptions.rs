@@ -5,7 +5,8 @@ use uuid::Uuid;
 
 use crate::{
     domain::{NewSubscriber, SubscriberEmail, SubscriberName},
-    email_client::EmailClient, startup::ApplicationBaseUrl,
+    email_client::EmailClient,
+    startup::ApplicationBaseUrl,
 };
 
 #[derive(serde::Deserialize)]
@@ -93,7 +94,10 @@ pub async fn send_confirmation_email(
     email_client: &EmailClient,
     base_url: &str,
 ) -> Result<(), reqwest::Error> {
-    let confirmation_link = format!("{}/subscriptions/confirm", base_url);
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token=mytoken",
+        base_url
+    );
     let plain_body = format!(
         "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
         confirmation_link
