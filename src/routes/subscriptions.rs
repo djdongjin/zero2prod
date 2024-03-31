@@ -54,13 +54,21 @@ pub async fn subscribe(
     };
     let subscription_token = generate_subscription_token();
 
-    if store_token(&db_pool, subscriber_id, &subscription_token).await.is_err() {
+    if store_token(&db_pool, subscriber_id, &subscription_token)
+        .await
+        .is_err()
+    {
         return HttpResponse::InternalServerError().finish();
     }
 
-    if send_confirmation_email(new_subscriber, &email_client, &base_url.0, "mytoken")
-        .await
-        .is_err()
+    if send_confirmation_email(
+        new_subscriber,
+        &email_client,
+        &base_url.0,
+        &subscription_token,
+    )
+    .await
+    .is_err()
     {
         return HttpResponse::InternalServerError().finish();
     }
@@ -126,7 +134,11 @@ pub async fn send_confirmation_email(
     name = "Storing subscription token in the database",
     skip(pool, subscriber_token)
 )]
-pub async fn store_token(pool: &PgPool, subscriber_id: Uuid, subscriber_token: &str) -> Result<(), sqlx::Error>{
+pub async fn store_token(
+    pool: &PgPool,
+    subscriber_id: Uuid,
+    subscriber_token: &str,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"INSERT INTO subscription_tokens (subscription_token, subscriber_id)
         VALUES ($1, $2)"#,
