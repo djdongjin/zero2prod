@@ -1,6 +1,6 @@
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::{self, EmailClient};
-use crate::routes::{health_check, subscribe};
+use crate::routes::{confirm, health_check, subscribe};
 
 use actix_web::dev::Server;
 use actix_web::{web, App, HttpServer};
@@ -37,7 +37,12 @@ impl Application {
 
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = run(listener, connection_pool, email_client)?;
+        let server = run(
+            listener,
+            connection_pool,
+            email_client,
+            configuration.application.base_url,
+        )?;
 
         Ok(Self { port, server })
     }
@@ -53,11 +58,19 @@ impl Application {
     }
 }
 
+// We need to define a wrapper type in order to retrieve the URL
+// in the `subscribe` handler.
+// Retrieval from the context, in actix-web, is type-based: using
+// a raw `String` would expose us to conflicts.
+#[derive(Debug)]
+pub struct ApplicationBaseUrl(pub String);
+
 // `async` is no longer needed as we don't have .await calls.
 fn run(
     listener: TcpListener,
     db_pool: PgPool,
     email_client: email_client::EmailClient,
+    base_url: String,
 ) -> Result<Server, std::io::Error> {
     // create a ARC pointer to the DB connection
     let db_pool = web::Data::new(db_pool);
@@ -67,8 +80,10 @@ fn run(
             .wrap(TracingLogger::default())
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
+            .route("/subscriptions/confirm", web::get().to(confirm))
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
+            .app_data(web::Data::new(ApplicationBaseUrl(base_url.clone())))
     })
     .listen(listener)?
     .run();
