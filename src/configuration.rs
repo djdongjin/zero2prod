@@ -5,15 +5,15 @@ use sqlx::ConnectOptions;
 
 use crate::domain::SubscriberEmail;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct Settings {
-    pub database: DatabseSettings,
+    pub database: DatabaseSettings,
     pub application: ApplicationSettings,
     pub email_client: EmailClientSettings,
 }
 
-#[derive(serde::Deserialize)]
-pub struct DatabseSettings {
+#[derive(serde::Deserialize, Clone)]
+pub struct DatabaseSettings {
     pub username: String,
     pub password: Secret<String>,
     pub host: String,
@@ -24,13 +24,13 @@ pub struct DatabseSettings {
     pub require_ssl: bool,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct ApplicationSettings {
     pub host: String,
     pub port: u16,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct EmailClientSettings {
     pub base_url: String,
     pub sender_email: String,
@@ -38,7 +38,7 @@ pub struct EmailClientSettings {
     pub timeout_milliseconds: u64,
 }
 
-impl DatabseSettings {
+impl DatabaseSettings {
     pub fn without_db(&self) -> PgConnectOptions {
         let ssl_mode = if self.require_ssl {
             PgSslMode::Require
