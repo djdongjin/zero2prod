@@ -31,8 +31,11 @@ To disable a clippy warning: `#[allow(clippy::lint_name)]`
 - [ ] Wire tracing with open telemetry (`tracing-opentelemetry`).
 - [ ] `tracing` v.s. `log`.
 
-
 ### Ch5
 
 - [ ] Use a container image for the app. E.g. [Wolfi](https://github.com/wolfi-dev/).
 - [ ] Deploy to cloudflare if possible.
+
+### Ch6
+
+- [ ] `.into()` method
