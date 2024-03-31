@@ -6,3 +6,9 @@ database:
   username: "postgres"
   password: "password"
   database_name: "newsletter"
+email_client:
+  base_url: "localhost"
+  sender_email: "test@gmail.com"
+  # production token will be handled outside of git.
+  authorization_token: "my-secret-token"
+  timeout_milliseconds: 10000
