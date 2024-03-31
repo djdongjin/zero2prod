@@ -1,5 +1,6 @@
 use actix_web::{web, HttpResponse, Responder};
 use chrono::Utc;
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -47,8 +48,14 @@ pub async fn subscribe(
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
 
-    if insert_subscriber(&new_subscriber, &db_pool).await.is_err() {
-        HttpResponse::InternalServerError().finish();
+    let subscriber_id = match insert_subscriber(&new_subscriber, &db_pool).await {
+        Ok(id) => id,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    let subscription_token = generate_subscription_token();
+
+    if store_token(&db_pool, subscriber_id, &subscription_token).await.is_err() {
+        return HttpResponse::InternalServerError().finish();
     }
 
     if send_confirmation_email(new_subscriber, &email_client, &base_url.0, "mytoken")
@@ -64,11 +71,12 @@ pub async fn subscribe(
     name = "Saving new subscriber details in the database",
     skip(form, pool)
 )]
-async fn insert_subscriber(form: &NewSubscriber, pool: &PgPool) -> Result<(), sqlx::Error> {
+async fn insert_subscriber(form: &NewSubscriber, pool: &PgPool) -> Result<Uuid, sqlx::Error> {
+    let uuid = Uuid::new_v4();
     sqlx::query!(
         r#"INSERT INTO subscriptions (id, email, name, subscribed_at, status)
         VALUES ($1, $2, $3, $4, 'pending_confirmation')"#,
-        Uuid::new_v4(),
+        uuid,
         form.email.as_ref(),
         form.name.as_ref(),
         Utc::now()
@@ -82,7 +90,7 @@ async fn insert_subscriber(form: &NewSubscriber, pool: &PgPool) -> Result<(), sq
         // if the function failed, returning a sqlx::Error
         // We will talk about error handling in depth later!
     })?;
-    Ok(())
+    Ok(uuid)
 }
 
 #[tracing::instrument(
@@ -112,4 +120,32 @@ pub async fn send_confirmation_email(
     email_client
         .send_email(form.email, "welcome", &html_body, &plain_body)
         .await
+}
+
+#[tracing::instrument(
+    name = "Storing subscription token in the database",
+    skip(pool, subscriber_token)
+)]
+pub async fn store_token(pool: &PgPool, subscriber_id: Uuid, subscriber_token: &str) -> Result<(), sqlx::Error>{
+    sqlx::query!(
+        r#"INSERT INTO subscription_tokens (subscription_token, subscriber_id)
+        VALUES ($1, $2)"#,
+        subscriber_token,
+        subscriber_id
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
+    Ok(())
+}
+
+fn generate_subscription_token() -> String {
+    let mut rng = thread_rng();
+    std::iter::repeat_with(|| rng.sample(Alphanumeric))
+        .map(char::from)
+        .take(25)
+        .collect()
 }

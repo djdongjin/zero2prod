@@ -19,6 +19,7 @@ actix-web = "4.5.1"
 chrono = { version = "0.4.35", default-features = false, features = ["clock"] }
 config = "0.14.0"
 log = "0.4.21"
+rand = { version = "0.8.5", features = ["std_rng"] }
 reqwest = { version = "0.12.1", default-features = false, features = ["json", "rustls-tls"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.197", features = ["derive"] }
