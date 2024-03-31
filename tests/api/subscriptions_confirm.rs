@@ -46,11 +46,13 @@ async fn the_link_returned_by_subscribe_returns_a_200_if_called() {
 
     // Extract the confirmation link
     let raw_confirmation_link = &get_link(&body["HtmlBody"].as_str().unwrap());
-    let confirmation_link = Url::parse(raw_confirmation_link).unwrap();
+    let mut confirmation_link = Url::parse(raw_confirmation_link).unwrap();
     // Let's make sure we don't call random APIs on the web
     assert_eq!(confirmation_link.host_str().unwrap(), "127.0.0.1");
 
     // Act 2: call the returned link should send a GET to /subscriptions/confirm
+    // Let's rewrite the URL to include the port first
+    confirmation_link.set_port(Some(app.port)).unwrap();
     let resp = reqwest::get(confirmation_link).await.unwrap();
 
     // Assert

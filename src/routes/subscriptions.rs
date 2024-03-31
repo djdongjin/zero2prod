@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     domain::{NewSubscriber, SubscriberEmail, SubscriberName},
-    email_client::EmailClient,
+    email_client::EmailClient, startup::ApplicationBaseUrl,
 };
 
 #[derive(serde::Deserialize)]
@@ -37,6 +37,7 @@ pub async fn subscribe(
     form: web::Form<FormData>,
     db_pool: web::Data<PgPool>,
     email_client: web::Data<EmailClient>,
+    base_url: web::Data<ApplicationBaseUrl>,
 ) -> impl Responder {
     // `web::Form` is a wrapper around `FormData`
     // `form.0` gives us access to the underlying `FormData`
@@ -49,7 +50,7 @@ pub async fn subscribe(
         HttpResponse::InternalServerError().finish();
     }
 
-    if send_confirmation_email(new_subscriber, &email_client)
+    if send_confirmation_email(new_subscriber, &email_client, &base_url.0)
         .await
         .is_err()
     {
@@ -90,8 +91,9 @@ async fn insert_subscriber(form: &NewSubscriber, pool: &PgPool) -> Result<(), sq
 pub async fn send_confirmation_email(
     form: NewSubscriber,
     email_client: &EmailClient,
+    base_url: &str,
 ) -> Result<(), reqwest::Error> {
-    let confirmation_link = "https://there-is-no-such-domain.com/subscriptions/confirm";
+    let confirmation_link = format!("{}/subscriptions/confirm", base_url);
     let plain_body = format!(
         "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
         confirmation_link
