@@ -51,7 +51,7 @@ pub async fn subscribe(
         HttpResponse::InternalServerError().finish();
     }
 
-    if send_confirmation_email(new_subscriber, &email_client, &base_url.0)
+    if send_confirmation_email(new_subscriber, &email_client, &base_url.0, "mytoken")
         .await
         .is_err()
     {
@@ -87,16 +87,17 @@ async fn insert_subscriber(form: &NewSubscriber, pool: &PgPool) -> Result<(), sq
 
 #[tracing::instrument(
     name = "Send a confirmation email to a new subscriber",
-    skip(email_client, form)
+    skip(email_client, form, base_url, subscription_token)
 )]
 pub async fn send_confirmation_email(
     form: NewSubscriber,
     email_client: &EmailClient,
     base_url: &str,
+    subscription_token: &str,
 ) -> Result<(), reqwest::Error> {
     let confirmation_link = format!(
-        "{}/subscriptions/confirm?subscription_token=mytoken",
-        base_url
+        "{}/subscriptions/confirm?subscription_token={}",
+        base_url, subscription_token
     );
     let plain_body = format!(
         "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
