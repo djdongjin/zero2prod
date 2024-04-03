@@ -39,3 +39,4 @@ To disable a clippy warning: `#[allow(clippy::lint_name)]`
 ### Ch6
 
 - [ ] `.into()` method
+- [ ] `?` operator
