@@ -1,14 +1,15 @@
-use actix_web::{web, HttpResponse, Responder};
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::email_client::EmailClient;
+use crate::startup::ApplicationBaseUrl;
+use actix_web::http::StatusCode;
+use actix_web::{web, HttpResponse, ResponseError};
+use anyhow::Context;
 use chrono::Utc;
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use sqlx::{Executor, PgPool, Postgres, Transaction};
+use std::convert::{TryFrom, TryInto};
 use uuid::Uuid;
-
-use crate::{
-    domain::{NewSubscriber, SubscriberEmail, SubscriberName},
-    email_client::EmailClient,
-    startup::ApplicationBaseUrl,
-};
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -27,6 +28,29 @@ impl TryFrom<FormData> for NewSubscriber {
     }
 }
 
+#[derive(thiserror::Error)]
+pub enum SubscribeError {
+    #[error("{0}")]
+    ValidationError(String),
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
+}
+
+impl std::fmt::Debug for SubscribeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl ResponseError for SubscribeError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            SubscribeError::ValidationError(_) => StatusCode::BAD_REQUEST,
+            SubscribeError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
 #[tracing::instrument(
     name = "Adding a new subscriber", // span message, fn name by default
     skip(form, db_pool, email_client), // skip these two fields in the span
@@ -40,49 +64,43 @@ pub async fn subscribe(
     db_pool: web::Data<PgPool>,
     email_client: web::Data<EmailClient>,
     base_url: web::Data<ApplicationBaseUrl>,
-) -> impl Responder {
+) -> Result<HttpResponse, SubscribeError> {
     // `web::Form` is a wrapper around `FormData`
     // `form.0` gives us access to the underlying `FormData`
-    let new_subscriber = match form.0.try_into() {
-        Ok(sub) => sub,
-        Err(_) => return HttpResponse::BadRequest().finish(),
-    };
+    let new_subscriber = form.0.try_into().map_err(SubscribeError::ValidationError)?;
 
-    let mut txn = match db_pool.begin().await {
-        Ok(t) => t,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
+    // the `.context` calls
+    // 1. converts errors returned by other methods into an `anyhow::Error`;
+    // 2. adds context to the error message
+    //
+    // Also since we defined `UnexpectedError(#[from] anyhow::Error),`, it will
+    // be converted into an `UnexpectedError` automatically.
 
-    let subscriber_id = match insert_subscriber(&new_subscriber, &mut txn).await {
-        Ok(id) => id,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
-    let subscription_token = generate_subscription_token();
-
-    if store_token(&mut txn, subscriber_id, &subscription_token)
+    let mut txn = db_pool
+        .begin()
         .await
-        .is_err()
-    {
-        return HttpResponse::InternalServerError().finish();
-    }
+        .context("Failed to acquire a Postgres connection from the pool")?;
+    let subscriber_id = insert_subscriber(&new_subscriber, &mut txn)
+        .await
+        .context("Failed to insert a new subscriber in the database")?;
+    let subscription_token = generate_subscription_token();
+    store_token(&mut txn, subscriber_id, &subscription_token)
+        .await
+        .context("Failed to store the subscription token in the database")?;
+    txn.commit()
+        .await
+        .context("Failed to commit the transaction")?;
 
-    if send_confirmation_email(
+    send_confirmation_email(
         new_subscriber,
         &email_client,
         &base_url.0,
         &subscription_token,
     )
     .await
-    .is_err()
-    {
-        return HttpResponse::InternalServerError().finish();
-    }
+    .context("Failed to send a confirmation email")?;
 
-    if txn.commit().await.is_err() {
-        return HttpResponse::InternalServerError().finish();
-    }
-
-    HttpResponse::Ok().finish()
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[tracing::instrument(
@@ -102,13 +120,7 @@ async fn insert_subscriber(
         form.name.as_ref(),
         Utc::now()
     );
-    txn.execute(query).await.map_err(|e| {
-        tracing::error!("Failed to execute query: {:?}", e);
-        e
-        // Using the `?` operator to return early
-        // if the function failed, returning a sqlx::Error
-        // We will talk about error handling in depth later!
-    })?;
+    txn.execute(query).await?;
     Ok(uuid)
 }
 
@@ -149,18 +161,38 @@ pub async fn store_token(
     txn: &mut Transaction<'_, Postgres>,
     subscriber_id: Uuid,
     subscriber_token: &str,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), StoreTokenError> {
     let query = sqlx::query!(
         r#"INSERT INTO subscription_tokens (subscription_token, subscriber_id)
         VALUES ($1, $2)"#,
         subscriber_token,
         subscriber_id
     );
-    txn.execute(query).await.map_err(|e| {
-        tracing::error!("Failed to execute query: {:?}", e);
-        e
-    })?;
+    txn.execute(query).await.map_err(StoreTokenError)?;
     Ok(())
+}
+
+pub struct StoreTokenError(sqlx::Error);
+
+impl std::error::Error for StoreTokenError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.0)
+    }
+}
+
+impl std::fmt::Debug for StoreTokenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl std::fmt::Display for StoreTokenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "A database failure was encountered while trying to store a subscription token."
+        )
+    }
 }
 
 fn generate_subscription_token() -> String {
@@ -169,4 +201,17 @@ fn generate_subscription_token() -> String {
         .map(char::from)
         .take(25)
         .collect()
+}
+
+pub fn error_chain_fmt(
+    e: &impl std::error::Error,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    writeln!(f, "{}\n", e)?;
+    let mut current = e.source();
+    while let Some(cause) = current {
+        writeln!(f, "Caused by:\n\t{}", cause)?;
+        current = cause.source();
+    }
+    Ok(())
 }

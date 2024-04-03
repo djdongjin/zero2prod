@@ -39,3 +39,10 @@ To disable a clippy warning: `#[allow(clippy::lint_name)]`
 ### Ch6
 
 - [ ] `.into()` method
+- [ ] `?` operator
+
+### Ch8 - Error handling
+
+- [ ] `std::fmt::Debug` and `std::fmt::Display`.
+- [ ] `?` v.s. `unwrap()`.
+- [ ] `async`/`await`.
