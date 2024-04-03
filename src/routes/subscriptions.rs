@@ -72,15 +72,24 @@ pub async fn subscribe(
     // the `.context` calls
     // 1. converts errors returned by other methods into an `anyhow::Error`;
     // 2. adds context to the error message
-    // 
+    //
     // Also since we defined `UnexpectedError(#[from] anyhow::Error),`, it will
     // be converted into an `UnexpectedError` automatically.
 
-    let mut txn = db_pool.begin().await.context("Failed to acquire a Postgres connection from the pool")?;
-    let subscriber_id = insert_subscriber(&new_subscriber, &mut txn).await.context("Failed to insert a new subscriber in the database")?;
+    let mut txn = db_pool
+        .begin()
+        .await
+        .context("Failed to acquire a Postgres connection from the pool")?;
+    let subscriber_id = insert_subscriber(&new_subscriber, &mut txn)
+        .await
+        .context("Failed to insert a new subscriber in the database")?;
     let subscription_token = generate_subscription_token();
-    store_token(&mut txn, subscriber_id, &subscription_token).await.context("Failed to store the subscription token in the database")?;
-    txn.commit().await.context("Failed to commit the transaction")?;
+    store_token(&mut txn, subscriber_id, &subscription_token)
+        .await
+        .context("Failed to store the subscription token in the database")?;
+    txn.commit()
+        .await
+        .context("Failed to commit the transaction")?;
 
     send_confirmation_email(
         new_subscriber,
@@ -88,7 +97,8 @@ pub async fn subscribe(
         &base_url.0,
         &subscription_token,
     )
-    .await.context("Failed to send a confirmation email")?;
+    .await
+    .context("Failed to send a confirmation email")?;
 
     Ok(HttpResponse::Ok().finish())
 }
@@ -110,12 +120,7 @@ async fn insert_subscriber(
         form.name.as_ref(),
         Utc::now()
     );
-    txn.execute(query).await.map_err(|e| {
-        e
-        // Using the `?` operator to return early
-        // if the function failed, returning a sqlx::Error
-        // We will talk about error handling in depth later!
-    })?;
+    txn.execute(query).await?;
     Ok(uuid)
 }
 
